@@ -8,7 +8,7 @@ import {
 } from "../http";
 import { middyfy } from "../middleware";
 
-const createUrl = async (event) => {
+const getUrl = async (event) => {
   try {
     if (!event?.body?.url) {
       return buildErrorResponse(
@@ -30,6 +30,6 @@ const createUrl = async (event) => {
 };
 
 export const middyGetUrl = middyfy({
-  handler: createUrl,
+  handler: getUrl,
   inputSchema: Schema.definitions.UrlRequest,
 });

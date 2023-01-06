@@ -25,7 +25,6 @@ export const UrlController = {
     if (!checkValidUrl(url)) {
       throw buildErrorResponse("Invalid url", HTTPStatusCodes.BAD_REQUEST);
     }
-    console.log("passed url check");
     // convert request value to key format
     const urlKey: string = createUrlKey(url);
     // check if this URL exist as PK (is this existing long-form?)
@@ -37,10 +36,8 @@ export const UrlController = {
       GetCommandOutput,
       "Item"
     > & { Item: UrlSet };
-    console.log("passed first query");
     // if record long-form record found, return the short-form
     if (Item) {
-      console.log(Item, "Item found");
       return Item.shortUrl;
     }
     // if not found, check if this URL hash exists as global secondary index (is this existing short-form?)
@@ -57,15 +54,12 @@ export const UrlController = {
           ":shortUrlHash": shortUrlHash,
         },
       };
-      console.log(QueryParams, "query params");
       const { Items } = (await DynamoDB.send(
         new QueryCommand(QueryParams)
       )) as Omit<QueryCommandOutput, "Items"> & { Items: UrlSet[] };
       // if items were found, return the long-form url for the first record
       // we assume there is only one record here, because the system would never create duplicates as coded
-      console.log("passed second query");
       if (Items && Items.length > 0) {
-        console.log(Items, "Items found");
         return Items[0].longUrl;
       }
     }
@@ -74,12 +68,10 @@ export const UrlController = {
       url: url,
       urlKey,
     });
-    console.log(newShortUrl, "newShortUrl");
     return newShortUrl;
   },
   create: async ({ url, urlKey }: CreateUrlSet) => {
     const newUrlHash = createUrlHash();
-    console.log(newUrlHash, "newUrlHash");
     const newUrlSet: UrlSet = {
       id: urlKey,
       shortUrlHash: newUrlHash,
@@ -92,7 +84,6 @@ export const UrlController = {
       Item: newUrlSet,
     };
     await DynamoDB.send(new PutCommand(PutParams));
-    console.log("succeeded create");
     return newUrlSet.shortUrl;
   },
 };

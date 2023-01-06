@@ -11,7 +11,6 @@ import { middyfy } from "../middleware";
 const createUrl = async (event) => {
   try {
     if (!event?.body?.url) {
-      console.log(JSON.stringify(event));
       return buildErrorResponse(
         "Invalid request: missing url request parameter",
         HTTPStatusCodes.BAD_REQUEST

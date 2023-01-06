@@ -1,0 +1,75 @@
+service: "dolly-url-shortener"
+package:
+  individually: true
+plugins:
+  - "serverless-webpack"
+  - "serverless-iam-roles-per-function"
+  - "serverless-add-api-key"
+provider:
+  name: aws
+  runtime: "nodejs16.x"
+  stage: "${opt:stage}"
+  region: "us-east-1"
+  environment:
+    DYNAMO_TABLE_PREFIX: ${self:service}-${opt:stage}
+  iamRoleStatements:
+    - Effect: Allow
+      Action: ["dynamodb:*"]
+      Resource: !GetAtt UrlsTable.Arn
+    - Effect: Allow
+      Action: ["dynamodb:*"]
+      Resource:
+        - arn:aws:dynamodb:*:*:table/${self:custom.urlsTableName}
+        - arn:aws:dynamodb:*:*:table/${self:custom.urlsTableName}/index/*
+custom:
+  urlsTableName: ${self:service}-${opt:stage}_Urls
+  webpack:
+    packager: "npm"
+    includeModules: true
+    webpackConfig: "webpack.config.js"
+  apiKeys:
+    dev:
+      - name: globalApiKey
+resources:
+  Resources:
+    GatewayResponseDefault4XX:
+      Type: "AWS::ApiGateway::GatewayResponse"
+      Properties:
+        ResponseParameters:
+          gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Headers: "'*'"
+        ResponseType: DEFAULT_4XX
+        RestApiId:
+          Ref: "ApiGatewayRestApi"
+    UrlsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.urlsTableName}
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+          - AttributeName: shortUrlHash
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: shortUrlHash-index
+            KeySchema:
+              - AttributeName: shortUrlHash
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+        BillingMode: PAY_PER_REQUEST
+functions:
+  getUrl:
+    handler: dist/src/handlers/url-api.middyGetUrl
+    package:
+      patterns:
+        - "!dist/**"
+        - "dist/src/handlers/url-api.js"
+    events:
+      - http:
+          method: POST
+          path: /api/url
+          private: true
